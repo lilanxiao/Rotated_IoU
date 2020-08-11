@@ -12,7 +12,7 @@ This demo first generates data and then do the training.
 The network is simply a shared MLP (implemented as Conv-layers with 1x1 kernel).
 
 Lanxiao Li
-2020.08.
+2020.08
 '''
 
 import torch
@@ -100,7 +100,7 @@ def parse_pred(pred:torch.Tensor):
     p4 = pred[..., 3]*np.pi*2
     return torch.stack([p0,p1,p2,p3,p4], dim=-1)
 
-def main(loss_type:str="giou"):
+def main(loss_type:str="giou", enclosing_type:str="aligned"):
     ds_train = BoxDataSet("train")
     ds_test = BoxDataSet("test")
     ld_train = DataLoader(ds_train, BATCH_SIZE * N_DATA, shuffle=True, num_workers=4)
@@ -130,9 +130,9 @@ def main(loss_type:str="giou"):
 
             iou_loss, iou = None, None
             if loss_type == "giou":
-                iou_loss, iou = cal_giou(pred, label)
+                iou_loss, iou = cal_giou(pred, label, enclosing_type)
             elif loss_type == "diou":
-                iou_loss, iou = cal_diou(pred, label)
+                iou_loss, iou = cal_diou(pred, label, enclosing_type)
             else:
                 ValueError("unknown loss type")
             iou_loss = torch.mean(iou_loss)
@@ -166,9 +166,9 @@ def main(loss_type:str="giou"):
 
                 iou_loss, iou = None, None
                 if loss_type == "giou":
-                    iou_loss, iou = cal_giou(pred, label)
+                    iou_loss, iou = cal_giou(pred, label, enclosing_type)
                 elif loss_type == "diou":
-                    iou_loss, iou = cal_diou(pred, label)
+                    iou_loss, iou = cal_diou(pred, label, enclosing_type)
                 else:
                     ValueError("unknown loss type")
                 iou_loss = torch.mean(iou_loss)
@@ -185,6 +185,8 @@ def main(loss_type:str="giou"):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--loss", type=str, default="giou", help="type of loss function. support diou or giou")
+    parser.add_argument("--loss", type=str, default="giou", help="type of loss function. support: diou or giou. [default: giou]")
+    parser.add_argument("--enclosing", type=str, default="aligned", 
+        help="type of enclosing box. support: aligned (axis-aligned) or pca (rotated). [default: aligned]")
     flags = parser.parse_args()
-    main(flags.loss)
+    main(flags.loss, flags.enclosing)

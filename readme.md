@@ -7,7 +7,7 @@ This repo is an unofficial implementation of [IoU Loss for 2D/3D Object Detectio
 - [x] Pytorch function to check if corners of one rectangle lie in another 
 - [x] CUDA extension to anti-clockwise sort vertices of the intersection polygon of two rectangles
 - [x] Pytorch function to calculate the intersection of area of rectangles using functions above
-- [x] Implementation of GIoU and DIoU for rotated rectangles (simplified) 
+- [x] Implementation of GIoU and DIoU for rotated rectangles
 - [x] Test cases
 - [x] Demo to validate the back-propagation
 - [ ] Intersection of 3D bounding boxes
@@ -52,6 +52,22 @@ You are expected to see some information like followings:
     [Epoch 1: 90/200] train loss: 0.7874  mean_iou: 0.2271
 
 Note the `train loss` drops and the `mean_iou` increases, which shows the functions are differentiable.
+
+## GIoU and DIoU
+This repo implements both [GIoU-loss](https://giou.stanford.edu/GIoU.pdf) and [DIoU-loss](https://arxiv.org/abs/1911.08287) for rotated bounding boxes. In the demo, they can be chosen with 
+
+    python demo.py --loss giou      # default
+    python demo.py --loss diou
+
+Both losses need the smallest enclosing box of two boxes. Note there are two different choices to determin the enclosing box. 
+
+1. axis-aligned box: the enclosing box is axis-aligned. This version is simple and fast but theortically non-optimal.
+2. rotated box: the enclosing box is rotated as well. The size of rotated enclosing box can be calculated using [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis). In the demo, this version brings better result (higher mean IoU on validation set). But this version is much slower due to the eigen-value computation.
+
+The two type of enclosing box can be chosen with:
+
+    python demo.py --enclosing aligned      # default. fast
+    python demo.py --enclosing pca          # slow
 
 ## Acknowledgement
 The idea of calculating intersection area is inspired by this paper:

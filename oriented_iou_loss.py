@@ -55,7 +55,7 @@ def cal_iou(box1:torch.Tensor, box2:torch.Tensor):
     iou = inter_area / u
     return iou, corners1, corners2, u
 
-def cal_diou(box1:torch.Tensor, box2:torch.Tensor):
+def cal_diou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="aligned"):
     """calculate diou loss
 
     Args:
@@ -63,7 +63,7 @@ def cal_diou(box1:torch.Tensor, box2:torch.Tensor):
         box2 (torch.Tensor): [description]
     """
     iou, corners1, corners2, u = cal_iou(box1, box2)
-    w, h = enclosing_box(corners1, corners2)
+    w, h = enclosing_box(corners1, corners2, enclosing_type)
     c2 = w*w + h*h      # (B, N)
     x_offset = box1[...,0] - box2[..., 0]
     y_offset = box1[...,1] - box2[..., 1]
@@ -71,15 +71,23 @@ def cal_diou(box1:torch.Tensor, box2:torch.Tensor):
     diou_loss = 1. - iou + d2/c2
     return diou_loss, iou
 
-def cal_giou(box1:torch.Tensor, box2:torch.Tensor):
+def cal_giou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="aligned"):
     iou, corners1, corners2, u = cal_iou(box1, box2)
-    w, h = enclosing_box(corners1, corners2)
+    w, h = enclosing_box(corners1, corners2, enclosing_type)
     area_c =  w*h
     giou_loss = 1. - iou + ( area_c - u )/area_c
     return giou_loss, iou
 
-def enclosing_box(corners1:torch.Tensor, corners2:torch.Tensor):
-    """calculate the smallest enclosing box. axis-aligned.
+def enclosing_box(corners1:torch.Tensor, corners2:torch.Tensor, enclosing_type:str="aligned"):
+    if enclosing_type == "aligned":
+        return enclosing_box_aligned(corners1, corners2)
+    elif enclosing_type == "pca":
+        return enclosing_box_pca(corners1, corners2)
+    else:
+        ValueError("Unknow type enclosing. Supported: aligned, pca")
+
+def enclosing_box_aligned(corners1:torch.Tensor, corners2:torch.Tensor):
+    """calculate the smallest enclosing box (axis-aligned)
 
     Args:
         corners1 (torch.Tensor): (B, N, 4, 2)
@@ -107,6 +115,31 @@ def enclosing_box(corners1:torch.Tensor, corners2:torch.Tensor):
     w = x_max - x_min       # (B, N)
     h = y_max - y_min
     return w, h
+
+def enclosing_box_pca(corners1:torch.Tensor, corners2:torch.Tensor):
+    """calculate the rotated smallest enclosing box using PCA (slow!)
+
+    Args:
+        corners1 (torch.Tensor): (B, N, 4, 2)
+        corners2 (torch.Tensor): (B, N, 4, 2)
+    
+    Returns:
+        w (torch.Tensor): (B, N)
+        h (torch.Tensor): (B, N)
+    """
+    B = corners1.size()[0]
+    c = torch.cat([corners1, corners2], dim=2)      # (B, N, 8, 2)
+    c = c.view([-1, 8, 2])                          # (B*N, 8, 2)
+    ct = c.transpose(1, 2)                          # (B*N, 2, 8)
+    ctc = torch.bmm(ct, c)                          # (B*N, 2, 2)
+    _, v = ctc.symeig(eigenvectors=True)
+    v1 = v[:, 0, :].unsqueeze(1)                    # (B*N, 1, 2), eigen value
+    v2 = v[:, 1, :].unsqueeze(1)                    # (B*N, 1, 2), eigen value
+    p1 = torch.sum(c * v1, dim=-1)                  # (B*N, 8), first principle component
+    p2 = torch.sum(c * v2, dim=-1)                  # (B*N, 8), second principle component
+    w = p1.max(dim=-1)[0] - p1.min(dim=-1)[0]       # (B*N, ),  width of rotated enclosing box
+    h = p2.max(dim=-1)[0] - p2.min(dim=-1)[0]       # (B*N, ),  height of rotated enclosing box
+    return w.view([B, -1]), h.view([B, -1])
 
 if __name__ == "__main__":
     from utiles import box2corners
