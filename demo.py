@@ -97,7 +97,7 @@ def parse_pred(pred:torch.Tensor):
     p1 = (pred[..., 1] - 0.5) * 2 * Y_MAX
     p2 = (pred[..., 2] - 0.5) * 2 * SCALE + 1
     p3 = (pred[..., 3] - 0.5) * 2 * SCALE + 1
-    p4 = pred[..., 3]*np.pi*2
+    p4 = pred[..., 4]*np.pi*2
     return torch.stack([p0,p1,p2,p3,p4], dim=-1)
 
 def main(loss_type:str="giou", enclosing_type:str="aligned"):
@@ -159,7 +159,6 @@ def main(loss_type:str="giou", enclosing_type:str="aligned"):
                 label = label.cuda()                        # (B*N, 5)
                 label = label.view([BATCH_SIZE, -1, 5])     # (B, N, 5)
                 
-                optimizer.zero_grad()
                 pred = net(box)                             # (B, 5, N)
                 pred = pred.transpose(1,2)                  # (B, N, 5)
                 pred = parse_pred(pred)
