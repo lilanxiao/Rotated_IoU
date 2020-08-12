@@ -62,12 +62,12 @@ This repo implements both [GIoU-loss](https://giou.stanford.edu/GIoU.pdf) and [D
 Both losses need the smallest enclosing box of two boxes. Note there are two different choices to determin the enclosing box. 
 
 1. axis-aligned box: the enclosing box is axis-aligned. This version is simple and fast but theortically non-optimal.
-2. rotated box: the enclosing box is rotated as well. The size of rotated enclosing box can be calculated using [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis). In the demo, this version brings better result (higher mean IoU on validation set). But this version is much slower due to the eigen-value computation.
+2. rotated box: the enclosing box is rotated as well. The size of rotated enclosing box can be calculated using [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis). In the demo, this version brings better result (higher mean IoU on validation set). But this version computationally more expensive due to the eigen-vector computation.
 
 The two type of enclosing box can be chosen with:
 
-    python demo.py --enclosing aligned      # default. fast
-    python demo.py --enclosing pca          # slow
+    python demo.py --enclosing aligned      # default. computationally cheap
+    python demo.py --enclosing pca          # computationally expensive
 
 ## Acknowledgement
 The idea of calculating intersection area is inspired by this paper:
@@ -77,8 +77,6 @@ The idea of calculating intersection area is inspired by this paper:
         booktitle={2019 International Conference on 3D Vision (3DV)}, 
         title={IoU Loss for 2D/3D Object Detection}, 
         year={2019},
-        volume={},
-        number={},
         pages={85-94},}
 
 Some code for CUDA extension is modified from:

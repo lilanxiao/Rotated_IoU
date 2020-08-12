@@ -129,17 +129,51 @@ def enclosing_box_pca(corners1:torch.Tensor, corners2:torch.Tensor):
     """
     B = corners1.size()[0]
     c = torch.cat([corners1, corners2], dim=2)      # (B, N, 8, 2)
+    c = c - torch.mean(c, dim=2, keepdim=True)      # normalization
     c = c.view([-1, 8, 2])                          # (B*N, 8, 2)
     ct = c.transpose(1, 2)                          # (B*N, 2, 8)
     ctc = torch.bmm(ct, c)                          # (B*N, 2, 2)
-    _, v = ctc.symeig(eigenvectors=True)
-    v1 = v[:, 0, :].unsqueeze(1)                    # (B*N, 1, 2), eigen value
-    v2 = v[:, 1, :].unsqueeze(1)                    # (B*N, 1, 2), eigen value
+    # NOTE: the build in symeig is slow!
+    # _, v = ctc.symeig(eigenvectors=True)
+    # v1 = v[:, 0, :].unsqueeze(1)                   
+    # v2 = v[:, 1, :].unsqueeze(1)
+    v1, v2 = eigenvector_22(ctc)
+    v1 = v1.unsqueeze(1)                            # (B*N, 1, 2), eigen value
+    v2 = v2.unsqueeze(1)
     p1 = torch.sum(c * v1, dim=-1)                  # (B*N, 8), first principle component
     p2 = torch.sum(c * v2, dim=-1)                  # (B*N, 8), second principle component
     w = p1.max(dim=-1)[0] - p1.min(dim=-1)[0]       # (B*N, ),  width of rotated enclosing box
     h = p2.max(dim=-1)[0] - p2.min(dim=-1)[0]       # (B*N, ),  height of rotated enclosing box
     return w.view([B, -1]), h.view([B, -1])
+
+def eigenvector_22(x:torch.Tensor):
+    """return eigenvector of 2x2 symmetric matrix using closed form
+    
+    https://math.stackexchange.com/questions/8672/eigenvalues-and-eigenvectors-of-2-times-2-matrix
+    
+    The calculation is done by using double precision
+
+    Args:
+        x (torch.Tensor): (..., 2, 2), symmetric, semi-definite
+    
+    Return:
+        v1 (torch.Tensor): (..., 2)
+        v2 (torch.Tensor): (..., 2)
+    """
+    # NOTE: must use doule precision here! with float the back-prop is very unstable
+    a = x[..., 0, 0].double()
+    c = x[..., 0, 1].double()
+    b = x[..., 1, 1].double()                                # (..., )
+    delta = torch.sqrt(a*a + 4*c*c - 2*a*b + b*b)
+    v1 = (a - b - delta) / 2. /c
+    v1 = torch.stack([v1, torch.ones_like(v1, dtype=torch.double, device=v1.device)], dim=-1)    # (..., 2)
+    v2 = (a - b + delta) / 2. /c
+    v2 = torch.stack([v2, torch.ones_like(v2, dtype=torch.double, device=v2.device)], dim=-1)    # (..., 2)
+    n1 = torch.sum(v1*v1, keepdim=True, dim=-1).sqrt()
+    n2 = torch.sum(v2*v2, keepdim=True, dim=-1).sqrt()
+    v1 = v1 / n1
+    v2 = v2 / n2
+    return v1.float(), v2.float()
 
 if __name__ == "__main__":
     from utiles import box2corners
