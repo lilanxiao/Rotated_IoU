@@ -56,14 +56,14 @@ Note the `train loss` drops and the `mean_iou` increases, which shows the functi
 ## GIoU and DIoU
 This repo implements both [GIoU-loss](https://giou.stanford.edu/GIoU.pdf) and [DIoU-loss](https://arxiv.org/abs/1911.08287) for rotated bounding boxes. In the demo, they can be chosen with 
 
-    python demo.py --loss giou      # default
-    python demo.py --loss diou
+    python demo.py --loss giou      
+    python demo.py --loss diou      # [default]
 
 Both losses need the smallest enclosing box of two boxes. Note there are different choices to determin the enclosing box. 
 
 1. axis-aligned box: the enclosing box is axis-aligned. This version is simple and fast but theortically non-optimal.
 2. rotated box (approximated): the enclosing box is rotated as well. The size of rotated enclosing box can be estimated using [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis). The calculation if relatively simple but the result is not accurate. In the demo, this methode seems work well.
-3. rotated box (accurate): real smallest [enclosing bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box). The brutal force search is used to get the minimum bounding box, the computational cost is high.
+3. rotated box (accurate): real [smallest enclosing bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box). Since the brutal force search is used to get the minimum bounding box, the computational cost is high.
 
 The two type of enclosing box can be chosen with:
 

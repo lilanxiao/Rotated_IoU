@@ -44,7 +44,7 @@ def create_data(num):
     y = (np.random.rand(num) - 0.5) * 2 * Y_MAX
     w = (np.random.rand(num) - 0.5) * 2 * SCALE + 1
     h = (np.random.rand(num) - 0.5) * 2 * SCALE + 1
-    alpha = np.random.rand(num) * 2 * np.pi
+    alpha = np.random.rand(num) * np.pi
     corners = np.zeros((num, 4, 2)).astype(np.float)
     for i in range(num):
         corners[i, ...] = box2corners(x[i], y[i], w[i], h[i], alpha[i])
@@ -97,7 +97,7 @@ def parse_pred(pred:torch.Tensor):
     p1 = (pred[..., 1] - 0.5) * 2 * Y_MAX
     p2 = (pred[..., 2] - 0.5) * 2 * SCALE + 1
     p3 = (pred[..., 3] - 0.5) * 2 * SCALE + 1
-    p4 = pred[..., 4]*np.pi*2
+    p4 = pred[..., 4] * np.pi
     return torch.stack([p0,p1,p2,p3,p4], dim=-1)
 
 def main(loss_type:str="giou", enclosing_type:str="aligned"):
@@ -184,8 +184,8 @@ def main(loss_type:str="giou", enclosing_type:str="aligned"):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--loss", type=str, default="giou", help="type of loss function. support: diou or giou. [default: giou]")
+    parser.add_argument("--loss", type=str, default="diou", help="type of loss function. support: diou or giou. [default: diou]")
     parser.add_argument("--enclosing", type=str, default="smallest", 
-        help="type of enclosing box. support: aligned (axis-aligned) or pca (rotated) or smallest. [default: smallest]")
+        help="type of enclosing box. support: aligned (axis-aligned) or pca (rotated) or smallest (rotated). [default: smallest]")
     flags = parser.parse_args()
     main(flags.loss, flags.enclosing)
