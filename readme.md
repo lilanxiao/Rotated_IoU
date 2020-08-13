@@ -7,10 +7,9 @@ This repo is an unofficial implementation of [IoU Loss for 2D/3D Object Detectio
 - [x] Pytorch function to check if corners of one rectangle lie in another 
 - [x] CUDA extension to anti-clockwise sort vertices of the intersection polygon of two rectangles
 - [x] Pytorch function to calculate the intersection of area of rectangles using functions above
-- [x] Implementation of GIoU and DIoU for rotated rectangles
 - [x] Test cases
+- [x] Rotated 2d/3d GIoU and DIoU loss
 - [x] Demo to validate the back-propagation
-- [x] Rotated GIoU and DIoU loss
 - [ ] Validate 2d/3d IoU loss in Object detection
 
 ## Requirements
