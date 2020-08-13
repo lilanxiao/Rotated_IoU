@@ -79,6 +79,71 @@ def cal_giou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="smallest"
     giou_loss = 1. - iou + ( area_c - u )/area_c
     return giou_loss, iou
 
+def cal_iou_3d(box3d1:torch.Tensor, box3d2:torch.Tensor, verbose=False):
+    """calculated 3d iou. assume the 3d bounding boxes are only rotated around z axis
+
+    Args:
+        box3d1 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        box3d2 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+    """
+    box1 = box3d1[..., [0,1,3,4,6]]     # 2d box
+    box2 = box3d2[..., [0,1,3,4,6]]
+    zmax1 = box3d1[..., 2] + box3d1[..., 5] * 0.5
+    zmin1 = box3d1[..., 2] - box3d1[..., 5] * 0.5
+    zmax2 = box3d2[..., 2] + box3d2[..., 5] * 0.5
+    zmin2 = box3d2[..., 2] - box3d2[..., 5] * 0.5
+    z_overlap = (torch.min(zmax1, zmax2) - torch.max(zmin1, zmin2)).clamp_min(0.)
+    iou_2d, corners1, corners2, u = cal_iou(box1, box2)        # (B, N)
+    intersection_3d = iou_2d * u * z_overlap
+    v1 = box3d1[..., 3] * box3d1[..., 4] * box3d1[..., 5]
+    v2 = box3d2[..., 3] * box3d2[..., 4] * box3d2[..., 5]
+    u3d = v1 + v2 - intersection_3d
+    if verbose:
+        z_range = (torch.max(zmax1, zmax2) - torch.min(zmin1, zmin2)).clamp_min(0.)
+        return intersection_3d / u3d, corners1, corners2, z_range, u3d
+    else:
+        return intersection_3d / u3d
+
+def cal_giou_3d(box3d1:torch.Tensor, box3d2:torch.Tensor, enclosing_type:str="smallest"):
+    """calculated 3d GIoU loss. assume the 3d bounding boxes are only rotated around z axis
+
+    Args:
+        box3d1 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        box3d2 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        enclosing_type (str, optional): type of enclosing box. Defaults to "smallest".
+
+    Returns:
+        (torch.Tensor): (B, N) 3d GIoU loss
+        (torch.Tensor): (B, N) 3d IoU
+    """
+    iou3d, corners1, corners2, z_range, u3d = cal_iou_3d(box3d1, box3d2, verbose=True)
+    w, h = enclosing_box(corners1, corners2, enclosing_type)
+    v_c = z_range * w * h
+    giou_loss = 1. - iou3d + (v_c - u3d)/v_c
+    return giou_loss, iou3d
+
+def cal_diou_3d(box3d1:torch.Tensor, box3d2:torch.Tensor, enclosing_type:str="smallest"):
+    """calculated 3d DIoU loss. assume the 3d bounding boxes are only rotated around z axis
+
+    Args:
+        box3d1 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        box3d2 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        enclosing_type (str, optional): type of enclosing box. Defaults to "smallest".
+
+    Returns:
+        (torch.Tensor): (B, N) 3d DIoU loss
+        (torch.Tensor): (B, N) 3d IoU
+    """
+    iou3d, corners1, corners2, z_range, u3d = cal_iou_3d(box3d1, box3d2, verbose=True)
+    w, h = enclosing_box(corners1, corners2, enclosing_type)
+    x_offset = box3d1[...,0] - box3d2[..., 0]
+    y_offset = box3d1[...,1] - box3d2[..., 1]
+    z_offset = box3d1[...,2] - box3d2[..., 2]
+    d2 = x_offset*x_offset + y_offset*y_offset + z_offset*z_offset
+    c2 = w*w + h*h + z_range*z_range
+    diou = 1. - iou3d + d2/c2
+    return diou, iou3d
+
 def enclosing_box(corners1:torch.Tensor, corners2:torch.Tensor, enclosing_type:str="smallest"):
     if enclosing_type == "aligned":
         return enclosing_box_aligned(corners1, corners2)
@@ -87,7 +152,7 @@ def enclosing_box(corners1:torch.Tensor, corners2:torch.Tensor, enclosing_type:s
     elif enclosing_type == "smallest":
         return smallest_bounding_box(torch.cat([corners1, corners2], dim=-2))
     else:
-        ValueError("Unknow type enclosing. Supported: aligned, pca")
+        ValueError("Unknow type enclosing. Supported: aligned, pca, smallest")
 
 def enclosing_box_aligned(corners1:torch.Tensor, corners2:torch.Tensor):
     """calculate the smallest enclosing box (axis-aligned)
@@ -179,11 +244,10 @@ def eigenvector_22(x:torch.Tensor):
     return v1.float(), v2.float()
 
 if __name__ == "__main__":
-    from utiles import box2corners
-    box = np.array([1, 1, 2, 3, np.pi/3])
-    corners = box2corners(*box)
-
-    box_b = torch.FloatTensor(box).unsqueeze(0).unsqueeze(0)
-    corners_b = box2corners_th(box_b)
-    print(corners)
-    print(corners_b)
+    box3d1 = np.array([0,0,0,3,3,3,0])
+    box3d2 = np.array([1,1,1,2,2,2,np.pi/3])
+    tensor1 = torch.FloatTensor(box3d1).unsqueeze(0).unsqueeze(0).cuda()
+    tensor2 = torch.FloatTensor(box3d2).unsqueeze(0).unsqueeze(0).cuda()
+    giou_loss, iou = cal_giou_3d(tensor1, tensor1)
+    print(giou_loss)
+    print(iou)

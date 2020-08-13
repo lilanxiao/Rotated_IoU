@@ -10,7 +10,7 @@ This repo is an unofficial implementation of [IoU Loss for 2D/3D Object Detectio
 - [x] Implementation of GIoU and DIoU for rotated rectangles
 - [x] Test cases
 - [x] Demo to validate the back-propagation
-- [ ] Intersection of 3D bounding boxes
+- [x] Rotated GIoU and DIoU loss
 - [ ] Validate 2d/3d IoU loss in Object detection
 
 ## Requirements
