@@ -185,7 +185,7 @@ def main(loss_type:str="giou", enclosing_type:str="aligned"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--loss", type=str, default="giou", help="type of loss function. support: diou or giou. [default: giou]")
-    parser.add_argument("--enclosing", type=str, default="aligned", 
-        help="type of enclosing box. support: aligned (axis-aligned) or pca (rotated). [default: aligned]")
+    parser.add_argument("--enclosing", type=str, default="smallest", 
+        help="type of enclosing box. support: aligned (axis-aligned) or pca (rotated) or smallest. [default: smallest]")
     flags = parser.parse_args()
     main(flags.loss, flags.enclosing)

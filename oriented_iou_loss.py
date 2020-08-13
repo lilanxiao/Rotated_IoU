@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from box_intersection_2d import oriented_box_intersection_2d
+from min_enclosing_box import smallest_bounding_box
 
 def box2corners_th(box:torch.Tensor)-> torch.Tensor:
     """convert box coordinate to corners
@@ -55,7 +56,7 @@ def cal_iou(box1:torch.Tensor, box2:torch.Tensor):
     iou = inter_area / u
     return iou, corners1, corners2, u
 
-def cal_diou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="aligned"):
+def cal_diou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="smallest"):
     """calculate diou loss
 
     Args:
@@ -71,18 +72,20 @@ def cal_diou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="aligned")
     diou_loss = 1. - iou + d2/c2
     return diou_loss, iou
 
-def cal_giou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="aligned"):
+def cal_giou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="smallest"):
     iou, corners1, corners2, u = cal_iou(box1, box2)
     w, h = enclosing_box(corners1, corners2, enclosing_type)
     area_c =  w*h
     giou_loss = 1. - iou + ( area_c - u )/area_c
     return giou_loss, iou
 
-def enclosing_box(corners1:torch.Tensor, corners2:torch.Tensor, enclosing_type:str="aligned"):
+def enclosing_box(corners1:torch.Tensor, corners2:torch.Tensor, enclosing_type:str="smallest"):
     if enclosing_type == "aligned":
         return enclosing_box_aligned(corners1, corners2)
     elif enclosing_type == "pca":
         return enclosing_box_pca(corners1, corners2)
+    elif enclosing_type == "smallest":
+        return smallest_bounding_box(torch.cat([corners1, corners2], dim=-2))
     else:
         ValueError("Unknow type enclosing. Supported: aligned, pca")
 
@@ -117,7 +120,7 @@ def enclosing_box_aligned(corners1:torch.Tensor, corners2:torch.Tensor):
     return w, h
 
 def enclosing_box_pca(corners1:torch.Tensor, corners2:torch.Tensor):
-    """calculate the rotated smallest enclosing box using PCA (slow!)
+    """calculate the rotated smallest enclosing box using PCA
 
     Args:
         corners1 (torch.Tensor): (B, N, 4, 2)

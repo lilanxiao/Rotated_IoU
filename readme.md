@@ -59,15 +59,17 @@ This repo implements both [GIoU-loss](https://giou.stanford.edu/GIoU.pdf) and [D
     python demo.py --loss giou      # default
     python demo.py --loss diou
 
-Both losses need the smallest enclosing box of two boxes. Note there are two different choices to determin the enclosing box. 
+Both losses need the smallest enclosing box of two boxes. Note there are different choices to determin the enclosing box. 
 
 1. axis-aligned box: the enclosing box is axis-aligned. This version is simple and fast but theortically non-optimal.
-2. rotated box: the enclosing box is rotated as well. The size of rotated enclosing box can be calculated using [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis). In the demo, this version brings better result (higher mean IoU on validation set). But this version computationally more expensive due to the eigen-vector computation.
+2. rotated box (approximated): the enclosing box is rotated as well. The size of rotated enclosing box can be estimated using [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis). The calculation if relatively simple but the result is not accurate. In the demo, this methode seems work well.
+3. rotated box (accurate): real smallest [enclosing bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box). The brutal force search is used to get the minimum bounding box, the computational cost is high.
 
 The two type of enclosing box can be chosen with:
 
-    python demo.py --enclosing aligned      # default. computationally cheap
-    python demo.py --enclosing pca          # computationally expensive
+    python demo.py --enclosing aligned      # simple and naive
+    python demo.py --enclosing pca          # approximated smallest
+    python demo.py --enclosing smallest     # [default]. smallest.
 
 ## Acknowledgement
 The idea of calculating intersection area is inspired by this paper:
