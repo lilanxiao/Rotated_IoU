@@ -98,12 +98,13 @@ def point_line_distance_range(lines:torch.Tensor, points:torch.Tensor):
     x = points[..., 0]            # (..., 24, 6)
     y = points[..., 1]            # (..., 24, 6)
     den = (y2-y1)*x - (x2-x1)*y + x2*y1 - y2*x1
-    num = torch.sqrt( (y2-y1).square() + (x2-x1).square() + 1e-8)
+    num = torch.sqrt( (y2-y1).square() + (x2-x1).square() ) + 1e-8
     d = den/num         # (..., 24, 6)
     d_max = d.max(dim=-1)[0]       # (..., 24)
     d_min = d.min(dim=-1)[0]       # (..., 24)
     d1 = d_max - d_min             # suppose points on different side
     d2 = torch.max(d.abs(), dim=-1)[0]      # or, all points are on the same side
+    # NOTE: if x1 = x2 and y1 = y2, this will return 0
     return torch.max(d1, d2)
 
 def point_line_projection_range(lines:torch.Tensor, points:torch.Tensor):
@@ -133,7 +134,6 @@ def point_line_projection_range(lines:torch.Tensor, points:torch.Tensor):
 
 def smallest_bounding_box(corners:torch.Tensor, verbose=False):
     """return width and length of the smallest bouding box which encloses two boxes.
-    Force double precision here since float is unstable in back-prop
 
     Args:
         lines (torch.Tensor): (..., 24, 2, 2)
@@ -145,11 +145,14 @@ def smallest_bounding_box(corners:torch.Tensor, verbose=False):
         (torch.Tensor): area (..., )
         (torch.Tensor): index of candiatae (..., )
     """
-    corners = corners.double()
     lines, points, _, _ = gather_lines_points(corners)
     proj = point_line_projection_range(lines, points)   # (..., 24)
     dist = point_line_distance_range(lines, points)     # (..., 24)
     area = proj * dist
+    # remove area with 0 when the two points of the line have the same coordinates
+    zero_mask = (area == 0).type(corners.dtype)
+    fake = torch.ones_like(zero_mask, dtype=corners.dtype, device=corners.device)* 1e8 * zero_mask
+    area += fake        # add large value to zero_mask
     area_min, idx = torch.min(area, dim=-1, keepdim=True)     # (..., 1)
     w = torch.gather(proj, dim=-1, index=idx)
     h = torch.gather(dist, dim=-1, index=idx)          # (..., 1)
