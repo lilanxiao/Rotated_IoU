@@ -40,15 +40,15 @@ You are expected to see some information like followings:
     ... generating 819200 boxes, please wait...
     ... generating 81920 boxes, please wait...
     data saved in:  ./data
-    [Epoch 1: 10/200] train loss: 1.1633  mean_iou: 0.1187
-    [Epoch 1: 20/200] train loss: 0.9112  mean_iou: 0.2096
-    [Epoch 1: 30/200] train loss: 0.8660  mean_iou: 0.1998
-    [Epoch 1: 40/200] train loss: 0.8763  mean_iou: 0.2181
-    [Epoch 1: 50/200] train loss: 0.8474  mean_iou: 0.2193
-    [Epoch 1: 60/200] train loss: 0.9155  mean_iou: 0.2253
-    [Epoch 1: 70/200] train loss: 0.8108  mean_iou: 0.2370
-    [Epoch 1: 80/200] train loss: 0.7942  mean_iou: 0.2244
-    [Epoch 1: 90/200] train loss: 0.7874  mean_iou: 0.2271
+    [Epoch 1: 10/200] train loss: 0.6721  mean_iou: 0.3703
+    [Epoch 1: 20/200] train loss: 0.4931  mean_iou: 0.5211
+    [Epoch 1: 30/200] train loss: 0.4532  mean_iou: 0.5546
+    [Epoch 1: 40/200] train loss: 0.4249  mean_iou: 0.5805
+    [Epoch 1: 50/200] train loss: 0.4361  mean_iou: 0.5713
+    [Epoch 1: 60/200] train loss: 0.4148  mean_iou: 0.5910
+    [Epoch 1: 70/200] train loss: 0.4272  mean_iou: 0.5803
+    [Epoch 1: 80/200] train loss: 0.4283  mean_iou: 0.5801
+    [Epoch 1: 90/200] train loss: 0.4203  mean_iou: 0.5879
 
 Note the `train loss` drops and the `mean_iou` increases, which shows the functions are differentiable.
 

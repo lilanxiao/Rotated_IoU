@@ -128,9 +128,9 @@ def sort_indices(vertices:torch.Tensor, mask:torch.Tensor):
         and X indicates the index of arbitary elements in the last 16 (intersections not corners) with 
         value 0 and mask False. (cause they have zero value and zero gradient)
     """
-    mean = torch.mean(vertices * mask.float().unsqueeze(-1), dim=2, keepdim=True)
+    num_valid = torch.sum(mask.int(), dim=2).int()      # (B, N)
+    mean = torch.sum(vertices * mask.float().unsqueeze(-1), dim=2, keepdim=True) / num_valid.unsqueeze(-1).unsqueeze(-1)
     vertices_normalized = vertices - mean       # normalization makes sorting easier
-    num_valid = torch.sum(mask.int(), dim=2).int()
     return sort_v(vertices_normalized, mask, num_valid).long()
 
 def calculate_area(idx_sorted:torch.Tensor, vertices:torch.Tensor):
