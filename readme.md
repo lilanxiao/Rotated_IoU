@@ -1,4 +1,6 @@
-# Differentiable Intersection Area of Oriented Boxes
+# Differentiable IoU of Oriented Boxes
+![image](image/iou.png "possible shape of IoU")
+(image source: [here](https://stackoverflow.com/questions/11670028/area-of-intersection-of-two-rotated-rectangles))
 ## Introduction
 This repo is an unofficial implementation of [IoU Loss for 2D/3D Object Detection](https://arxiv.org/pdf/1908.03851.pdf). It contains the Pytorch function which calculates the intersection area of oriented rectangles using GPU.
 
@@ -64,11 +66,11 @@ Both losses need the smallest enclosing box of two boxes. Note there are differe
 2. rotated box (approximated): the enclosing box is rotated as well. The size of rotated enclosing box can be estimated using [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis). The calculation if relatively simple but the result is not accurate. In the demo, this methode seems work well.
 3. rotated box (accurate): real [smallest enclosing bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box). Since the brutal force search is used to get the minimum bounding box, the computational cost is high.
 
-The two type of enclosing box can be chosen with:
+The three types of enclosing box can be chosen with:
 
-    python demo.py --enclosing aligned      # simple and naive
-    python demo.py --enclosing pca          # approximated smallest
-    python demo.py --enclosing smallest     # [default]. smallest.
+    python demo.py --enclosing aligned      # simple and naive. bad performance.
+    python demo.py --enclosing pca          # approximated smallest box. slightly worse performance.
+    python demo.py --enclosing smallest     # [default]. smallest box. best performance.
 
 ## Acknowledgement
 The idea of calculating intersection area is inspired by this paper:
