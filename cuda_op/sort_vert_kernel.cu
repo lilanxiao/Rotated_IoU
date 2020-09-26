@@ -73,10 +73,10 @@ __global__ void sort_vertices_kernel(int b, int n, int m,
                 // initilize with a "big" value
                 float x_min = 1;
                 float y_min = -EPSILON;
+                int i_take = 0;                
                 for (int k=0; k<m; ++k){
                     float x = vertices[i*m*2 + k*2 + 0];
                     float y = vertices[i*m*2 + k*2 + 1];
-                    int i_take;
                     if (j==0){
                         if (mask[i*m+k] && compare_vertices(x, y, x_min, y_min)){
                             x_min = x;
