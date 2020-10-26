@@ -37,12 +37,15 @@ def box_intersection_th(corners1:torch.Tensor, corners2:torch.Tensor):
     # math: https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
     num = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)     
     den_t = (x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)
-    t = den_t / (num + EPSILON) 
-    mask_t = (t >= 0) * (t < 1)                  # intersection on line segment 1
+    t = den_t / num
+    t[num == .0] = -1.
+    mask_t = (t >= 0) * (t <= 1)                # intersection on line segment 1
     den_u = (x1-x2)*(y1-y3) - (y1-y2)*(x1-x3)
-    u = - den_u / (num + EPSILON)
-    mask_u = (u >= 0) * (u < 1)                  # intersection on line segment 2
+    u = -den_u / num
+    u[num == .0] = -1.
+    mask_u = (u >= 0) * (u <= 1)                # intersection on line segment 2
     mask = mask_t * mask_u 
+    t = den_t / (num + EPSILON)                 # overwrite with EPSILON. otherwise numerically unstable
     intersections = torch.stack([x1 + t*(x2-x1), y1 + t*(y2-y1)], dim=-1)
     intersections = intersections * mask.float().unsqueeze(-1)
     return intersections, mask
