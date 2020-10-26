@@ -50,7 +50,7 @@ def box_intersection_th(corners1:torch.Tensor, corners2:torch.Tensor):
     intersections = intersections * mask.float().unsqueeze(-1)
     return intersections, mask
 
-def box1_in_box2(corners1:torch.Tensor, corners2:torch.Tensor):
+def box1_in_box2(corners1:torch.Tensor, corners2:torch.Tensor, equal=True):
     """check if corners of box1 lie in box2
 
     Args:
@@ -70,8 +70,12 @@ def box1_in_box2(corners1:torch.Tensor, corners2:torch.Tensor):
     norm_ab = torch.sum(ab * ab, dim=-1)    # (B, N, 1)
     p_ad = torch.sum(ad * am, dim=-1)       # (B, N, 4)
     norm_ad = torch.sum(ad * ad, dim=-1)    # (B, N, 1)
-    cond1 = (p_ab >= 0) * (p_ab <= norm_ab)   # (B, N, 4)
-    cond2 = (p_ad > 0) * (p_ad < norm_ad)   # (B, N, 4)
+    if equal:
+        cond1 = (p_ab >= 0) * (p_ab <= norm_ab)   # (B, N, 4)
+        cond2 = (p_ad >= 0) * (p_ad <= norm_ad)   # (B, N, 4)
+    else:
+        cond1 = (p_ab >= 0) * (p_ab <= norm_ab)   # (B, N, 4)
+        cond2 = (p_ad > 0) * (p_ad < norm_ad)   # (B, N, 4)
     return cond1*cond2
 
 def box_in_box_th(corners1:torch.Tensor, corners2:torch.Tensor):
@@ -85,8 +89,8 @@ def box_in_box_th(corners1:torch.Tensor, corners2:torch.Tensor):
         c1_in_2: (B, N, 4) Bool. i-th corner of box1 in box2
         c2_in_1: (B, N, 4) Bool. i-th corner of box2 in box1
     """
-    c1_in_2 = box1_in_box2(corners1, corners2)
-    c2_in_1 = box1_in_box2(corners2, corners1)
+    c1_in_2 = box1_in_box2(corners1, corners2, True)
+    c2_in_1 = box1_in_box2(corners2, corners1, False)
     return c1_in_2, c2_in_1
 
 def build_vertices(corners1:torch.Tensor, corners2:torch.Tensor, 
