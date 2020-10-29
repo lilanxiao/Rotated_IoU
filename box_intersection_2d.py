@@ -10,6 +10,7 @@ EPSILON = 1e-8
 
 def box_intersection_th(corners1:torch.Tensor, corners2:torch.Tensor):
     """find intersection points of rectangles
+    Convention: if two edges are collinear, there is no intersection point
 
     Args:
         corners1 (torch.Tensor): B, N, 4, 2
@@ -50,8 +51,9 @@ def box_intersection_th(corners1:torch.Tensor, corners2:torch.Tensor):
     intersections = intersections * mask.float().unsqueeze(-1)
     return intersections, mask
 
-def box1_in_box2(corners1:torch.Tensor, corners2:torch.Tensor, equal=True):
+def box1_in_box2(corners1:torch.Tensor, corners2:torch.Tensor):
     """check if corners of box1 lie in box2
+    Convention: if a corner is exactly on the edge of the other box, it's also a valid point
 
     Args:
         corners1 (torch.Tensor): (B, N, 4, 2)
@@ -70,12 +72,10 @@ def box1_in_box2(corners1:torch.Tensor, corners2:torch.Tensor, equal=True):
     norm_ab = torch.sum(ab * ab, dim=-1)    # (B, N, 1)
     p_ad = torch.sum(ad * am, dim=-1)       # (B, N, 4)
     norm_ad = torch.sum(ad * ad, dim=-1)    # (B, N, 1)
-    if equal:
-        cond1 = (p_ab >= 0) * (p_ab <= norm_ab)   # (B, N, 4)
-        cond2 = (p_ad >= 0) * (p_ad <= norm_ad)   # (B, N, 4)
-    else:
-        cond1 = (p_ab >= 0) * (p_ab <= norm_ab)   # (B, N, 4)
-        cond2 = (p_ad > 0) * (p_ad < norm_ad)   # (B, N, 4)
+    # NOTE: the expression looks ugly but is stable if the two boxes are exactly the same
+    # also stable with different scale of bboxes
+    cond1 = (p_ab / norm_ab > - 1e-6) * (p_ab / norm_ab < 1 + 1e-6)   # (B, N, 4)
+    cond2 = (p_ad / norm_ad > - 1e-6) * (p_ad / norm_ad < 1 + 1e-6)   # (B, N, 4)
     return cond1*cond2
 
 def box_in_box_th(corners1:torch.Tensor, corners2:torch.Tensor):
@@ -89,8 +89,8 @@ def box_in_box_th(corners1:torch.Tensor, corners2:torch.Tensor):
         c1_in_2: (B, N, 4) Bool. i-th corner of box1 in box2
         c2_in_1: (B, N, 4) Bool. i-th corner of box2 in box1
     """
-    c1_in_2 = box1_in_box2(corners1, corners2, True)
-    c2_in_1 = box1_in_box2(corners2, corners1, False)
+    c1_in_2 = box1_in_box2(corners1, corners2)
+    c2_in_1 = box1_in_box2(corners2, corners1)
     return c1_in_2, c2_in_1
 
 def build_vertices(corners1:torch.Tensor, corners2:torch.Tensor, 

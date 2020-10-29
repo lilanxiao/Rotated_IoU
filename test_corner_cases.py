@@ -1,3 +1,10 @@
+'''
+test cases for issue #8
+check the calculation if:
+    1. edges are collinear
+    2. boxes are exactly the same
+    3. input in different scale level
+'''
 import torch
 from oriented_iou_loss import cal_iou
 
@@ -22,7 +29,14 @@ def test_same_edge_offset():
     result = cal_iou(box_0[None, None, ...], box_1[None, None, ...])[0].cpu().numpy()
     print("expect:", expect, "get:", result[0,0])
 
+def test_same_box2():
+    expect = 1
+    box_1 = torch.tensor([38, 120, 1.3, 20, 50], device=device)
+    result = cal_iou(box_1[None, None, ...], box_1[None, None, ...])[0].cpu().numpy()
+    print("expect:", expect, "get:", result[0,0])
+
 if __name__ == "__main__":
     test_same_box()
     test_same_edge()
     test_same_edge_offset()
+    test_same_box2()

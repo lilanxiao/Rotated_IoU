@@ -4,6 +4,9 @@
 ## Introduction
 This repo is an unofficial implementation of [IoU Loss for 2D/3D Object Detection](https://arxiv.org/pdf/1908.03851.pdf). It contains the Pytorch function which calculates the intersection area of oriented rectangles using GPU.
 
+## Note
+The CUDA extension is modified recently to cover some corner cases. Please consider to update the code and re-compile the extension.
+
 ## Check List
 - [x] Pytorch function to find intersection points of oriented rectangles
 - [x] Pytorch function to check if corners of one rectangle lie in another 

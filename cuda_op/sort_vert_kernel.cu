@@ -106,6 +106,29 @@ __global__ void sort_vertices_kernel(int b, int n, int m,
             for (int j=num_valid[i]+1; j<MAX_NUM_VERT_IDX; ++j){
                 idx[i*MAX_NUM_VERT_IDX + j] = pad;
             }
+
+            // for corner case: the two boxes are exactly the same.
+            // in this case, idx would have duplicate elements, which makes the shoelace formula broken
+            // because of the definition, the duplicate elements only appear in the first 8 positions
+            // (they are "corners in box", not "intersection of edges")
+            if (num_valid[i] == 8){
+                int counter = 0;
+                for (int j=0; j<4; ++j){
+                    int check = idx[i*MAX_NUM_VERT_IDX + j];
+                    for (int k=4; k<INTERSECTION_OFFSET; ++k){
+                        if (idx[i*MAX_NUM_VERT_IDX + k] == check)
+                            counter++;
+                    }
+                }
+                if (counter == 4){
+                    idx[i*MAX_NUM_VERT_IDX + 4] = idx[i*MAX_NUM_VERT_IDX + 0];
+                    for (int j = 5; j<MAX_NUM_VERT_IDX; ++j){
+                        idx[i*MAX_NUM_VERT_IDX + j] = pad;
+                    }
+                }                            
+            }
+
+            // TODO: still might need to cover some other corner cases :(
         }
     }
 }
