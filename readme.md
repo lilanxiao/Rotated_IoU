@@ -1,16 +1,20 @@
 # Differentiable IoU of Oriented Boxes
 ![image](image/iou.png "possible shape of IoU")
+
 (image source: [here](https://stackoverflow.com/questions/11670028/area-of-intersection-of-two-rotated-rectangles))
 ## Introduction
 This repo is an unofficial implementation of [IoU Loss for 2D/3D Object Detection](https://arxiv.org/pdf/1908.03851.pdf). It contains the Pytorch function which calculates the intersection area of oriented rectangles using GPU.
 
 ## Note
-The CUDA extension is modified recently to cover some corner cases. Please consider to update the code and re-compile the extension.
+**[2022.06.03]** several changes have been made: 
+- The CUDA extension is replaced with native Pytorch implementation to avoid bugs and make the code clearer
+- You don't have to compile anything now.  
+- Fix bugs when two boxes are partially overlapped, share corners, have collinear edges, etc. 
+
 
 ## Check List
 - [x] Pytorch function to find intersection points of oriented rectangles
 - [x] Pytorch function to check if corners of one rectangle lie in another 
-- [x] CUDA extension to anti-clockwise sort vertices of the intersection polygon of two rectangles
 - [x] Pytorch function to calculate the intersection of area of rectangles using functions above
 - [x] Test cases
 - [x] Rotated 2d/3d GIoU and DIoU loss
@@ -20,25 +24,18 @@ The CUDA extension is modified recently to cover some corner cases. Please consi
 ## Requirements
 Code is tested on Ubuntu 18.04. Following dependencies are needed
 
-    cudatoolkit=10.2
-    pytorch=1.5         # newer version should work as well
+    pytorch         # tested with 1.5 and 1.8
     numpy
     matplotlib
     argparse
 
 ## Usage
 
-First, compile the CUDA extension.
+Run a demo, which validate the Pytorch functions:
 
-    cd cuda_op
-    python setup.py install
-
-Then, run a demo which validate the Pytorch functions and CUDA extension.
-
-    cd ..
     python demo.py
 
-This demo trains a network which takes N set of box corners and predicts the `x, y, w, h` and `angle` of each rotated boxes. In order to do the back-prop, the predicted box parameters and the GT are converted to coordinates of box corners. The area of intersection is calculated using the Pytorch function with CUDA extension. Then, the GIoU loss or DIoU loss can be calculated. This demo first generates data and then do the training.
+This demo trains a network which takes N set of box corners and predicts the `x, y, w, h` and `angle` of each rotated boxes. In order to do the back-prop, the predicted box parameters and the GT are converted to coordinates of box corners. The area of intersection is calculated using the Pytorch functions. Then, the GIoU loss or DIoU loss can be calculated. This demo first generates data and then do the training.
 
 You are expected to see some information like followings:
 
@@ -67,7 +64,7 @@ Both losses need the smallest enclosing box of two boxes. Note there are differe
 
 1. axis-aligned box: the enclosing box is axis-aligned. This version is simple and fast but theortically non-optimal.
 2. rotated box (approximated): the enclosing box is rotated as well. The size of rotated enclosing box can be estimated using [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis). The calculation if relatively simple but the result is not accurate. In the demo, this methode seems work well.
-3. rotated box (accurate): real [smallest enclosing bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box). Since the brutal force search is used to get the minimum bounding box, the computational cost is high.
+3. rotated box (accurate): real [smallest enclosing bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box). Since the brute force search is used to get the minimum bounding box, the computational cost is high.
 
 The three types of enclosing box can be chosen with:
 
@@ -84,13 +81,4 @@ The idea of calculating intersection area is inspired by this paper:
         title={IoU Loss for 2D/3D Object Detection}, 
         year={2019},
         pages={85-94},}
-
-Some code for CUDA extension is modified from:
-
-    @article{pytorchpointnet++,
-        Author = {Erik Wijmans},
-        Title = {Pointnet++ Pytorch},
-        Journal = {https://github.com/erikwijmans/Pointnet2_PyTorch},
-        Year = {2018}
-    }
 

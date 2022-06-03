@@ -1,16 +1,18 @@
 import torch
+from torch import Tensor
 import numpy as np
 from box_intersection_2d import oriented_box_intersection_2d
 from min_enclosing_box import smallest_bounding_box
 
-def box2corners_th(box:torch.Tensor)-> torch.Tensor:
+
+def box2corners_th(box:Tensor)-> Tensor:
     """convert box coordinate to corners
 
     Args:
-        box (torch.Tensor): (B, N, 5) with x, y, w, h, alpha
+        box (Tensor): (B, N, 5) with x, y, w, h, alpha
 
     Returns:
-        torch.Tensor: (B, N, 4, 2) corners
+        Tensor: (B, N, 4, 2) corners
     """
     B = box.size()[0]
     x = box[..., 0:1]
@@ -34,18 +36,19 @@ def box2corners_th(box:torch.Tensor)-> torch.Tensor:
     rotated[..., 1] += y
     return rotated
 
-def cal_iou(box1:torch.Tensor, box2:torch.Tensor):
+
+def cal_iou(box1:Tensor, box2:Tensor):
     """calculate iou
 
     Args:
-        box1 (torch.Tensor): (B, N, 5)
-        box2 (torch.Tensor): (B, N, 5)
+        box1 (Tensor): (B, N, 5)
+        box2 (Tensor): (B, N, 5)
     
     Returns:
-        iou (torch.Tensor): (B, N)
-        corners1 (torch.Tensor): (B, N, 4, 2)
-        corners1 (torch.Tensor): (B, N, 4, 2)
-        U (torch.Tensor): (B, N) area1 + area2 - inter_area
+        iou (Tensor): (B, N)
+        corners1 (Tensor): (B, N, 4, 2)
+        corners1 (Tensor): (B, N, 4, 2)
+        U (Tensor): (B, N) area1 + area2 - inter_area
     """
     corners1 = box2corners_th(box1)
     corners2 = box2corners_th(box2)
@@ -56,12 +59,13 @@ def cal_iou(box1:torch.Tensor, box2:torch.Tensor):
     iou = inter_area / u
     return iou, corners1, corners2, u
 
-def cal_diou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="smallest"):
+
+def cal_diou(box1:Tensor, box2:Tensor, enclosing_type:str="smallest"):
     """calculate diou loss
 
     Args:
-        box1 (torch.Tensor): [description]
-        box2 (torch.Tensor): [description]
+        box1 (Tensor): [description]
+        box2 (Tensor): [description]
     """
     iou, corners1, corners2, u = cal_iou(box1, box2)
     w, h = enclosing_box(corners1, corners2, enclosing_type)
@@ -72,19 +76,21 @@ def cal_diou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="smallest"
     diou_loss = 1. - iou + d2/c2
     return diou_loss, iou
 
-def cal_giou(box1:torch.Tensor, box2:torch.Tensor, enclosing_type:str="smallest"):
+
+def cal_giou(box1:Tensor, box2:Tensor, enclosing_type:str="smallest"):
     iou, corners1, corners2, u = cal_iou(box1, box2)
     w, h = enclosing_box(corners1, corners2, enclosing_type)
     area_c =  w*h
     giou_loss = 1. - iou + ( area_c - u )/area_c
     return giou_loss, iou
 
-def cal_iou_3d(box3d1:torch.Tensor, box3d2:torch.Tensor, verbose=False):
+
+def cal_iou_3d(box3d1:Tensor, box3d2:Tensor, verbose=False):
     """calculated 3d iou. assume the 3d bounding boxes are only rotated around z axis
 
     Args:
-        box3d1 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
-        box3d2 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        box3d1 (Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        box3d2 (Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
     """
     box1 = box3d1[..., [0,1,3,4,6]]     # 2d box
     box2 = box3d2[..., [0,1,3,4,6]]
@@ -104,17 +110,18 @@ def cal_iou_3d(box3d1:torch.Tensor, box3d2:torch.Tensor, verbose=False):
     else:
         return intersection_3d / u3d
 
-def cal_giou_3d(box3d1:torch.Tensor, box3d2:torch.Tensor, enclosing_type:str="smallest"):
+
+def cal_giou_3d(box3d1:Tensor, box3d2:Tensor, enclosing_type:str="smallest"):
     """calculated 3d GIoU loss. assume the 3d bounding boxes are only rotated around z axis
 
     Args:
-        box3d1 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
-        box3d2 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        box3d1 (Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        box3d2 (Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
         enclosing_type (str, optional): type of enclosing box. Defaults to "smallest".
 
     Returns:
-        (torch.Tensor): (B, N) 3d GIoU loss
-        (torch.Tensor): (B, N) 3d IoU
+        (Tensor): (B, N) 3d GIoU loss
+        (Tensor): (B, N) 3d IoU
     """
     iou3d, corners1, corners2, z_range, u3d = cal_iou_3d(box3d1, box3d2, verbose=True)
     w, h = enclosing_box(corners1, corners2, enclosing_type)
@@ -122,17 +129,18 @@ def cal_giou_3d(box3d1:torch.Tensor, box3d2:torch.Tensor, enclosing_type:str="sm
     giou_loss = 1. - iou3d + (v_c - u3d)/v_c
     return giou_loss, iou3d
 
-def cal_diou_3d(box3d1:torch.Tensor, box3d2:torch.Tensor, enclosing_type:str="smallest"):
+
+def cal_diou_3d(box3d1:Tensor, box3d2:Tensor, enclosing_type:str="smallest"):
     """calculated 3d DIoU loss. assume the 3d bounding boxes are only rotated around z axis
 
     Args:
-        box3d1 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
-        box3d2 (torch.Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        box3d1 (Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
+        box3d2 (Tensor): (B, N, 3+3+1),  (x,y,z,w,h,l,alpha)
         enclosing_type (str, optional): type of enclosing box. Defaults to "smallest".
 
     Returns:
-        (torch.Tensor): (B, N) 3d DIoU loss
-        (torch.Tensor): (B, N) 3d IoU
+        (Tensor): (B, N) 3d DIoU loss
+        (Tensor): (B, N) 3d IoU
     """
     iou3d, corners1, corners2, z_range, u3d = cal_iou_3d(box3d1, box3d2, verbose=True)
     w, h = enclosing_box(corners1, corners2, enclosing_type)
@@ -144,7 +152,8 @@ def cal_diou_3d(box3d1:torch.Tensor, box3d2:torch.Tensor, enclosing_type:str="sm
     diou = 1. - iou3d + d2/c2
     return diou, iou3d
 
-def enclosing_box(corners1:torch.Tensor, corners2:torch.Tensor, enclosing_type:str="smallest"):
+
+def enclosing_box(corners1:Tensor, corners2:Tensor, enclosing_type:str="smallest"):
     if enclosing_type == "aligned":
         return enclosing_box_aligned(corners1, corners2)
     elif enclosing_type == "pca":
@@ -154,16 +163,17 @@ def enclosing_box(corners1:torch.Tensor, corners2:torch.Tensor, enclosing_type:s
     else:
         ValueError("Unknow type enclosing. Supported: aligned, pca, smallest")
 
-def enclosing_box_aligned(corners1:torch.Tensor, corners2:torch.Tensor):
+
+def enclosing_box_aligned(corners1:Tensor, corners2:Tensor):
     """calculate the smallest enclosing box (axis-aligned)
 
     Args:
-        corners1 (torch.Tensor): (B, N, 4, 2)
-        corners2 (torch.Tensor): (B, N, 4, 2)
+        corners1 (Tensor): (B, N, 4, 2)
+        corners2 (Tensor): (B, N, 4, 2)
     
     Returns:
-        w (torch.Tensor): (B, N)
-        h (torch.Tensor): (B, N)
+        w (Tensor): (B, N)
+        h (Tensor): (B, N)
     """
     x1_max = torch.max(corners1[..., 0], dim=2)[0]     # (B, N)
     x1_min = torch.min(corners1[..., 0], dim=2)[0]     # (B, N)
@@ -184,16 +194,17 @@ def enclosing_box_aligned(corners1:torch.Tensor, corners2:torch.Tensor):
     h = y_max - y_min
     return w, h
 
-def enclosing_box_pca(corners1:torch.Tensor, corners2:torch.Tensor):
+
+def enclosing_box_pca(corners1:Tensor, corners2:Tensor):
     """calculate the rotated smallest enclosing box using PCA
 
     Args:
-        corners1 (torch.Tensor): (B, N, 4, 2)
-        corners2 (torch.Tensor): (B, N, 4, 2)
+        corners1 (Tensor): (B, N, 4, 2)
+        corners2 (Tensor): (B, N, 4, 2)
     
     Returns:
-        w (torch.Tensor): (B, N)
-        h (torch.Tensor): (B, N)
+        w (Tensor): (B, N)
+        h (Tensor): (B, N)
     """
     B = corners1.size()[0]
     c = torch.cat([corners1, corners2], dim=2)      # (B, N, 8, 2)
@@ -214,7 +225,8 @@ def enclosing_box_pca(corners1:torch.Tensor, corners2:torch.Tensor):
     h = p2.max(dim=-1)[0] - p2.min(dim=-1)[0]       # (B*N, ),  height of rotated enclosing box
     return w.view([B, -1]), h.view([B, -1])
 
-def eigenvector_22(x:torch.Tensor):
+
+def eigenvector_22(x:Tensor):
     """return eigenvector of 2x2 symmetric matrix using closed form
     
     https://math.stackexchange.com/questions/8672/eigenvalues-and-eigenvectors-of-2-times-2-matrix
@@ -222,11 +234,11 @@ def eigenvector_22(x:torch.Tensor):
     The calculation is done by using double precision
 
     Args:
-        x (torch.Tensor): (..., 2, 2), symmetric, semi-definite
+        x (Tensor): (..., 2, 2), symmetric, semi-definite
     
     Return:
-        v1 (torch.Tensor): (..., 2)
-        v2 (torch.Tensor): (..., 2)
+        v1 (Tensor): (..., 2)
+        v2 (Tensor): (..., 2)
     """
     # NOTE: must use doule precision here! with float the back-prop is very unstable
     a = x[..., 0, 0].double()
@@ -242,6 +254,7 @@ def eigenvector_22(x:torch.Tensor):
     v1 = v1 / n1
     v2 = v2 / n2
     return v1.float(), v2.float()
+
 
 if __name__ == "__main__":
     box3d1 = np.array([0,0,0,3,3,3,0])

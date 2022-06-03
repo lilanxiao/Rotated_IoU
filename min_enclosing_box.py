@@ -21,6 +21,8 @@ author: Lanxiao Li
 
 import numpy as np
 import torch
+from torch import Tensor
+
 
 def generate_table():
     """generate candidates of hull polygon edges and the the other 6 points
@@ -47,21 +49,23 @@ def generate_table():
                 points.append(all_except_two(i, j))
     return line, points
 
+
 LINES, POINTS = generate_table()
 LINES = np.array(LINES).astype(np.int)
 POINTS = np.array(POINTS).astype(np.int)
 
-def gather_lines_points(corners:torch.Tensor):
+
+def gather_lines_points(corners:Tensor):
     """get hull edge candidates and the rest points using the index
 
     Args:
-        corners (torch.Tensor): (..., 8, 2)
+        corners (Tensor): (..., 8, 2)
     
     Return: 
-        lines (torch.Tensor): (..., 24, 2, 2)
-        points (torch.Tensor): (..., 24, 6, 2)
-        idx_lines (torch.Tensor): Long (..., 24, 2, 2)
-        idx_points (torch.Tensor): Long (..., 24, 6, 2)
+        lines (Tensor): (..., 24, 2, 2)
+        points (Tensor): (..., 24, 6, 2)
+        idx_lines (Tensor): Long (..., 24, 2, 2)
+        idx_points (Tensor): Long (..., 24, 6, 2)
     """
     dim = corners.dim()
     idx_lines = torch.LongTensor(LINES).to(corners.device).unsqueeze(-1)      # (24, 2, 1)
@@ -80,16 +84,17 @@ def gather_lines_points(corners:torch.Tensor):
 
     return lines, points, idx_lines, idx_points
 
-def point_line_distance_range(lines:torch.Tensor, points:torch.Tensor):
+
+def point_line_distance_range(lines:Tensor, points:Tensor):
     """calculate the maximal distance between the points in the direction perpendicular to the line
     methode: point-line-distance
 
     Args:
-        lines (torch.Tensor): (..., 24, 2, 2)
-        points (torch.Tensor): (..., 24, 6, 2)
+        lines (Tensor): (..., 24, 2, 2)
+        points (Tensor): (..., 24, 6, 2)
     
     Return:
-        torch.Tensor: (..., 24)
+        Tensor: (..., 24)
     """
     x1 = lines[..., 0:1, 0]       # (..., 24, 1)
     y1 = lines[..., 0:1, 1]       # (..., 24, 1)
@@ -108,16 +113,17 @@ def point_line_distance_range(lines:torch.Tensor, points:torch.Tensor):
     # NOTE: if x1 = x2 and y1 = y2, this will return 0
     return torch.max(d1, d2)
 
-def point_line_projection_range(lines:torch.Tensor, points:torch.Tensor):
+
+def point_line_projection_range(lines:Tensor, points:Tensor):
     """calculate the maximal distance between the points in the direction parallel to the line
     methode: point-line projection
 
     Args:
-        lines (torch.Tensor): (..., 24, 2, 2)
-        points (torch.Tensor): (..., 24, 6, 2)
+        lines (Tensor): (..., 24, 2, 2)
+        points (Tensor): (..., 24, 6, 2)
     
     Return:
-        torch.Tensor: (..., 24)
+        Tensor: (..., 24)
     """
     x1 = lines[..., 0:1, 0]       # (..., 24, 1)
     y1 = lines[..., 0:1, 1]       # (..., 24, 1)
@@ -133,18 +139,19 @@ def point_line_projection_range(lines:torch.Tensor, points:torch.Tensor):
     proj_min = proj.min(dim=-1)[0]       # (..., 24)
     return proj_max - proj_min
 
-def smallest_bounding_box(corners:torch.Tensor, verbose=False):
+
+def smallest_bounding_box(corners:Tensor, verbose=False):
     """return width and length of the smallest bouding box which encloses two boxes.
 
     Args:
-        lines (torch.Tensor): (..., 24, 2, 2)
+        lines (Tensor): (..., 24, 2, 2)
         verbose (bool, optional): If True, return area and index. Defaults to False.
 
     Returns:
-        (torch.Tensor): width (..., 24)
-        (torch.Tensor): height (..., 24)
-        (torch.Tensor): area (..., )
-        (torch.Tensor): index of candiatae (..., )
+        (Tensor): width (..., 24)
+        (Tensor): height (..., 24)
+        (Tensor): area (..., )
+        (Tensor): index of candiatae (..., )
     """
     lines, points, _, _ = gather_lines_points(corners)
     proj = point_line_projection_range(lines, points)   # (..., 24)
@@ -157,13 +164,14 @@ def smallest_bounding_box(corners:torch.Tensor, verbose=False):
     area_min, idx = torch.min(area, dim=-1, keepdim=True)     # (..., 1)
     w = torch.gather(proj, dim=-1, index=idx)
     h = torch.gather(dist, dim=-1, index=idx)          # (..., 1)
-    w = w.squeeze(-1).float()
-    h = h.squeeze(-1).float()
-    area_min = area_min.squeeze(-1).float()
+    w = w.squeeze(-1).type(corners.dtype)
+    h = h.squeeze(-1).type(corners.dtype)
+    area_min = area_min.squeeze(-1).type(corners.dtype)
     if verbose:
         return w, h, area_min, idx.squeeze(-1)
     else:
         return w, h
+
 
 if __name__ == "__main__":
     """
