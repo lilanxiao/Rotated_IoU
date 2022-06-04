@@ -20,9 +20,9 @@ def box2corners_th(box:Tensor)-> Tensor:
     w = box[..., 2:3]
     h = box[..., 3:4]
     alpha = box[..., 4:5] # (B, N, 1)
-    x4 = torch.FloatTensor([0.5, -0.5, -0.5, 0.5]).unsqueeze(0).unsqueeze(0).to(box.device) # (1,1,4)
+    x4 = torch.tensor([0.5, -0.5, -0.5, 0.5], dtype=box.dtype).unsqueeze(0).unsqueeze(0).to(box.device) # (1,1,4)
     x4 = x4 * w     # (B, N, 4)
-    y4 = torch.FloatTensor([0.5, 0.5, -0.5, -0.5]).unsqueeze(0).unsqueeze(0).to(box.device)
+    y4 = torch.tensor([0.5, 0.5, -0.5, -0.5], dtype=box.dtype).unsqueeze(0).unsqueeze(0).to(box.device)
     y4 = y4 * h     # (B, N, 4)
     corners = torch.stack([x4, y4], dim=-1)     # (B, N, 4, 2)
     sin = torch.sin(alpha)
@@ -253,7 +253,7 @@ def eigenvector_22(x:Tensor):
     n2 = torch.sum(v2*v2, keepdim=True, dim=-1).sqrt()
     v1 = v1 / n1
     v2 = v2 / n2
-    return v1.float(), v2.float()
+    return v1.type(x.dtype), v2.type(x.dtype)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,14 @@ This repo is an unofficial implementation of [IoU Loss for 2D/3D Object Detectio
 - The CUDA extension is replaced with native Pytorch implementation to avoid bugs and make the code clearer
 - You don't have to compile anything now.  
 - Fix bugs when two boxes are partially overlapped, share corners, have collinear edges, etc. 
+- The previous version used the hardcoded `Float32` data type. Now all calculation also supports `Float64`. If you still have numerical issues, please consider trying `Float64` instead of `Float32`:
+  
+  ```
+  iou_loss, iou = cal_giou(box1.double(), box2.double())    # force to use float64 for IoU calculation
+  iou_loss = iou_loss.float()                               # convert back to float32 if necessary
+  iou = iou.float()
+  ```
+
 
 
 ## Check List

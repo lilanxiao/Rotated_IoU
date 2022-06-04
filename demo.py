@@ -100,7 +100,7 @@ def parse_pred(pred:torch.Tensor):
     p4 = pred[..., 4] * np.pi
     return torch.stack([p0,p1,p2,p3,p4], dim=-1)
 
-def main(loss_type:str="giou", enclosing_type:str="aligned"):
+def main(loss_type:str="giou", enclosing_type:str="aligned", dtype=torch.float32):
     ds_train = BoxDataSet("train")
     ds_test = BoxDataSet("test")
     ld_train = DataLoader(ds_train, BATCH_SIZE * N_DATA, shuffle=True, num_workers=4)
@@ -130,9 +130,9 @@ def main(loss_type:str="giou", enclosing_type:str="aligned"):
 
             iou_loss, iou = None, None
             if loss_type == "giou":
-                iou_loss, iou = cal_giou(pred, label, enclosing_type)
+                iou_loss, iou = cal_giou(pred.type(dtype), label.type(dtype), enclosing_type)
             elif loss_type == "diou":
-                iou_loss, iou = cal_diou(pred, label, enclosing_type)
+                iou_loss, iou = cal_diou(pred.type(dtype), label.type(dtype), enclosing_type)
             else:
                 ValueError("unknown loss type")
             iou_loss = torch.mean(iou_loss)
@@ -187,5 +187,13 @@ if __name__ == "__main__":
     parser.add_argument("--loss", type=str, default="diou", help="type of loss function. support: diou or giou. [default: diou]")
     parser.add_argument("--enclosing", type=str, default="smallest", 
         help="type of enclosing box. support: aligned (axis-aligned) or pca (rotated) or smallest (rotated). [default: smallest]")
+    parser.add_argument("--dtype_iou", default="float32", help="set data type for iou calculation",
+                        choices=["float32", "float64"])
     flags = parser.parse_args()
-    main(flags.loss, flags.enclosing)
+    
+    if flags.dtype_iou == "float32":
+        dtype = torch.float32
+    elif flags.dtype_iou == "float64":
+        dtype = torch.float64
+    
+    main(flags.loss, flags.enclosing, dtype)
