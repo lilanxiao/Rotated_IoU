@@ -259,5 +259,5 @@ def _generate_mask(num: int, valid_num: Tensor, dtype, device):
     mask = ar < valid_num.unsqueeze(-1)
     # NOTE: this expression doesn't work some earlier PyTorch version:
     # arr = torch.where(mask, 1., 0.)
-    ar = torch.where(mask, torch.ones((1,)).expand_as(mask), torch.zeros(1,).expand_as(mask))
+    ar = torch.where(mask, torch.ones((1,)).expand_as(mask).to(device), torch.zeros(1,).expand_as(mask).to(device))
     return ar
